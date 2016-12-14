@@ -1,8 +1,1 @@
-PyYAML==3.12
 bioblend==0.8.0
-boto==2.44.0
-poster==0.8.1
-requests==2.12.3
-requests-toolbelt==0.7.0
-six==1.10.0
-wsgiref==0.1.2
