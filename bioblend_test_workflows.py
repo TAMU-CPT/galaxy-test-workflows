@@ -146,12 +146,22 @@ def test_workflows(gi, data_library, workflows_to_test, dry_run=False):
         result, result_extra = watch_workflow_invocation(gi, wf['id'], invocation['id'])
         # Finish time
         finish_time = time.time()
-        if result == 'Success':
-            xunit.ok('workflow_test', wf['name'], time=finish_time - start_time)
+        # If we expect or allow failure
+        if wft.get('failure_expected', False) or wft.get('failure_tolerated', False):
+            # Then the results are inverted, success is actually a failure.
+            if result == 'Success':
+                xunit.failure('workflow_test', wf['name'], 'Workflow execution succeeded (failure expected)',
+                            time=finish_time - start_time)
+            else:
+                xunit.ok('workflow_test', wf['name'], time=finish_time - start_time)
         else:
-            xunit.failure('workflow_test', wf['name'], 'Workflow execution failed',
-                          errorDetails=json.dumps(result_extra, indent=2),
-                          time=finish_time - start_time)
+            # Otherwise, per normal.
+            if result == 'Success':
+                xunit.ok('workflow_test', wf['name'], time=finish_time - start_time)
+            else:
+                xunit.failure('workflow_test', wf['name'], 'Workflow execution failed',
+                            errorDetails=json.dumps(result_extra, indent=2),
+                            time=finish_time - start_time)
 
 
 def watch_workflow_invocation(gi, wf_id, invoke_id):

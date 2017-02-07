@@ -8,6 +8,7 @@
           #path: "/wf-hash-digest/MetaGeneAnnotator"
 -
     id: "615de3cda8849e57" # test_b
+    failure_expected: True
     inputs:
         0:
           src: "ldda"
