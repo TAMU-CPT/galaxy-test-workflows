@@ -136,18 +136,10 @@ def test_workflows(gi, data_library, workflows_to_test, dry_run=False):
         # Logging, in case anyone is watching.
         logging.info("Running workflow: %s with results to: %s" % (wf['name'], history_name))
 
-        # workflow inputs
-        wf_inputs = {
-            '0': {
-                'id': '2d432a91419baf16',
-                'src': 'ldda',
-            }
-        }
-
+        # Launch workflow
         invocation = gi.workflows.invoke_workflow(
             wf['id'],
-            inputs=wf_inputs,
-            # inputs=wft['inputs'],
+            inputs=wft['inputs'],
             history_name=history_name,
         )
 
