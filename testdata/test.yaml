@@ -2,7 +2,7 @@
     id: "77664bb1fda23ad7" # test_a
     inputs:
         0:
-          type: "ldda"
+          src: "ldda"
           id: "2d432a91419baf16"
           #step_label: "Input Dataset"
           #path: "/wf-hash-digest/MetaGeneAnnotator"
