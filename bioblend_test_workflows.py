@@ -1,17 +1,11 @@
 #!/usr/bin/env python
 import argparse
 import yaml
-import re
 import os
-import sys
-import glob
 import json
 import time
-import random
 import logging
 import datetime
-import subprocess
-from six import iteritems, string_types
 from bioblend import galaxy
 
 logging.basicConfig(format='[%(asctime)s][%(lineno)d][%(module)s] %(message)s', level=logging.DEBUG)
@@ -130,7 +124,12 @@ def test_workflows(gi, data_library, workflows_to_test, dry_run=False):
         # Start time
         start_time = time.time()
         # Get our workflow info from the server
-        wf = gi.workflows.get_workflows(workflow_id=wft['id'])[0]
+        try:
+            wf = gi.workflows.get_workflows(workflow_id=wft['id'])[0]
+        except:
+            gi.workflows.import_shared_workflow(wft['id'])
+            wf = gi.workflows.get_workflows(workflow_id=wft['id'])[0]
+
         # Construct a hsitory name
         history_name = "TEST_RUN_%s: %s" % (time.strftime("%Y-%m-%d"), wf['name'])
         # Logging, in case anyone is watching.
@@ -172,8 +171,6 @@ def watch_workflow_invocation(gi, wf_id, invoke_id):
         # If it's scheduled, then let's look at steps. Otherwise steps probably don't exist yet.
         if latest_state['state'] == 'scheduled':
             steps = latest_state['steps']
-            # Check if we're done / not
-            all_done = True
             # Get step states
             states = [step['state'] for step in steps]
             # If any state is in error,
