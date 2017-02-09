@@ -1,5 +1,5 @@
 -
-    id: "77664bb1fda23ad7" # test_a
+    id: "4a88294502d050f4" # test_a
     inputs:
         0:
           src: "ldda"
@@ -7,7 +7,7 @@
           #step_label: "Input Dataset"
           #path: "/wf-hash-digest/MetaGeneAnnotator"
 -
-    id: "615de3cda8849e57" # test_b
+    id: "257af32786fc3cfe" # test_b
     failure_expected: True
     inputs:
         0:
