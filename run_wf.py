@@ -43,7 +43,7 @@ def __main__():
     test_suites = []
     wf_invocations = []
     for name in org_names:
-        hist = gi.histories.create_history(name='[%s] WF=Functional Org=%s' % (BUILD_ID, name))
+        hist = gi.histories.create_history(name='BuildID=%s WF=Functional Org=%s Source=Jenkins' % (BUILD_ID, name))
         gi.histories.create_history_tag(hist['id'], 'Automated')
         gi.histories.create_history_tag(hist['id'], 'Annotation')
         gi.histories.create_history_tag(hist['id'], 'BICH464')
