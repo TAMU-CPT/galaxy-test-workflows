@@ -106,10 +106,6 @@ def retrieve_and_rename(gi, hist, ORG_NAME):
         tool_run = gi.tools.run_tool(hist['id'], 'edu.tamu.cpt2.webapollo.export', inputs)
     # Now to correct the names
 
-    with xunit('galaxy', 'watch_run') as tc4:
-        watch_job_invocation(gi, tool_run['jobs'][0]['id'])
-
-    rename_tcs = []
     datasets = {}
     logging.info("Run complete, renaming outputs")
     for dataset in tool_run['outputs']:
@@ -125,13 +121,7 @@ def retrieve_and_rename(gi, hist, ORG_NAME):
         # Keep a copy by extension
         datasets[dataset['file_ext']] = dataset
 
-        # Rename datasets
-        with xunit('galaxy', 'rename.%s' % dataset['file_ext']) as tmp_tc:
-            gi.histories.update_dataset(hist['id'], dataset['id'], name=name)
-
-        rename_tcs.append(tmp_tc)
-
-    return datasets, [tc3, tc4] + rename_tcs
+    return datasets, [tc3]
 
 
 def watch_job_invocation(gi, job_id):
