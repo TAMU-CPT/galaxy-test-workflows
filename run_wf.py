@@ -4,6 +4,7 @@ import os
 import time
 import logging
 import datetime
+from justbackoff import Backoff
 from bioblend import galaxy
 from xunit_wrapper import xunit, xunit_suite, xunit_dump
 
@@ -12,6 +13,7 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("bioblend").setLevel(logging.WARNING)
 NOW = datetime.datetime.now()
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+backoff = Backoff(min_ms=100, max_ms=1000 * 60 * 5, factor=2, jitter=False)
 
 def __main__():
     parser = argparse.ArgumentParser(description="""Script to run all workflows mentioned in workflows_to_test.
@@ -126,9 +128,17 @@ def retrieve_and_rename(gi, hist, ORG_NAME):
 
 def watch_job_invocation(gi, job_id):
     latest_state = None
+    prev_state = None
+
     while True:
         # Fetch the current state
         latest_state = gi.jobs.get_state(job_id)
+        # If the state changes
+        if latest_state != prev_state:
+            # Reset the backoff
+            backoff.reset()
+        prev_state = latest_state
+
         # If it's scheduled, then let's look at steps. Otherwise steps probably don't exist yet.
         logging.debug("Checking job %s state: %s", job_id, latest_state)
         if latest_state == 'error':
@@ -136,22 +146,28 @@ def watch_job_invocation(gi, job_id):
         elif latest_state == 'ok':
             return
         else:
-            time.sleep(5)
+            time.sleep(backoff.duration())
     raise Exception(latest_state)
 
 
 def watch_workflow_invocation(gi, wf_id, invoke_id):
     latest_state = None
+    prev_state = None
     while True:
         # Fetch the current state
         latest_state = gi.workflows.show_invocation(wf_id, invoke_id)
+        # Get step states
+        states = [step['state'] for step in latest_state['steps']]
+        # Get a str based state representation
+        state_rep = '|'.join(map(str, states))
+        if state_rep != prev_state:
+            backoff.reset()
+        prev_state = state_rep
+
         # If it's scheduled, then let's look at steps. Otherwise steps probably don't exist yet.
         if latest_state['state'] == 'scheduled':
-            steps = latest_state['steps']
-            # Get step states
-            states = [step['state'] for step in steps]
             # If any state is in error,
-            logging.info("Checking workflow %s states: %s", wf_id, '|'.join(map(str, states)))
+            logging.info("Checking workflow %s states: %s", wf_id, state_rep)
             if any([state == 'error' for state in states]):
                 # We bail
                 raise Exception(latest_state)
@@ -161,7 +177,7 @@ def watch_workflow_invocation(gi, wf_id, invoke_id):
                     for state in states]):
                 return
                 # We can finish
-        time.sleep(5)
+        time.sleep(backoff.duration())
     raise Exception(latest_state)
 
 
