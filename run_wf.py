@@ -37,6 +37,7 @@ def __main__():
                  'UDP')
 
     test_suites = []
+    wf_invocations = []
     for name in org_names:
         hist = gi.histories.create_history(name='WF Auto Functional %s' % name)
         # Load the datasets into history
@@ -60,15 +61,25 @@ def __main__():
             }
         }
 
-        # Invoke workflow
-        wf_test_cases = run_workflow(gi, wf, inputs, hist, watch=False)
+        # Invoke Workflow
+        wf_test_cases, watchable_invocation = run_workflow(gi, wf, inputs, hist, watch=False)
+        # Invoke Workflow test cases
         ts = xunit_suite('[%s] Invoking workflow' % name, wf_test_cases)
         test_suites.append(ts)
+        # Store the invocation info for watching later.
+        wf_invocations.append(watchable_invocation)
 
+    invoke_test_cases = []
+    for (wf_id, invoke_id) in wf_invocations:
+        with xunit('galaxy', 'workflow_watch.%s.%s' % (wf_id, invoke_id)) as tc_watch:
+            logging.info("Waiting on wf %s invocation %s", wf_id, invoke_id)
+            watch_workflow_invocation(gi, wf_id, invoke_id)
+        invoke_test_cases.append(tc_watch)
+    ts = xunit_suite('[%s] Workflow Completion' % name, invoke_test_cases)
     args.xunit_output.write(xunit_dump(test_suites))
 
 
-def run_workflow(gi, wf, inputs, hist, watch=False):
+def run_workflow(gi, wf, inputs, hist):
     test_cases = []
 
     with xunit('galaxy', 'workflow_launch') as tc_invoke:
@@ -79,14 +90,9 @@ def run_workflow(gi, wf, inputs, hist, watch=False):
             history_id=hist['id'],
         )
     test_cases.append(tc_invoke)
+    watchable_invocation = (wf['id'], invocation['id'])
 
-    if watch:
-        with xunit('galaxy', 'workflow_watch') as tc_watch:
-            logging.info("Waiting on wf invocation %s", invocation['id'])
-            watch_workflow_invocation(gi, wf['id'], invocation['id'])
-        test_cases.append(tc_watch)
-
-    return test_cases
+    return test_cases, watchable_invocation
 
 def retrieve_and_rename(gi, hist, ORG_NAME):
     logging.info("Retrieving and Renaming %s", ORG_NAME)
