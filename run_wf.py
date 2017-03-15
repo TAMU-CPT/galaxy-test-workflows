@@ -8,12 +8,14 @@ from justbackoff import Backoff
 from bioblend import galaxy
 from xunit_wrapper import xunit, xunit_suite, xunit_dump
 
+
 logging.basicConfig(format='[%(asctime)s][%(lineno)d][%(module)s] %(message)s', level=logging.DEBUG)
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("bioblend").setLevel(logging.WARNING)
 NOW = datetime.datetime.now()
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 backoff = Backoff(min_ms=100, max_ms=1000 * 60 * 5, factor=2, jitter=False)
+BUILD_ID = os.environ.get('BUILD_NUMBER', 'Manual')
 
 def __main__():
     parser = argparse.ArgumentParser(description="""Script to run all workflows mentioned in workflows_to_test.
@@ -41,7 +43,10 @@ def __main__():
     test_suites = []
     wf_invocations = []
     for name in org_names:
-        hist = gi.histories.create_history(name='WF Auto Functional %s' % name)
+        hist = gi.histories.create_history(name='[%s] WF=Functional Org=%s' % (BUILD_ID, name))
+        gi.histories.create_history_tag(hist['id'], 'Automated')
+        gi.histories.create_history_tag(hist['id'], 'Annotation')
+        gi.histories.create_history_tag(hist['id'], 'BICH464')
         # Load the datasets into history
         datasets, fetch_test_cases = retrieve_and_rename(gi, hist, name)
         ts = xunit_suite('[%s] Fetching Data' % name, fetch_test_cases)
