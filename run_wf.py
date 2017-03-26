@@ -33,7 +33,7 @@ def __main__():
     args = parser.parse_args()
 
     gi = galaxy.GalaxyInstance(args.url, args.key)
-    wf = gi.workflows.get_workflows(workflow_id='784d1a320bd8a2b8')[0]
+    wf = gi.workflows.get_workflows(workflow_id='6ef78cb4f3918886')[0]
 
     org_names = ('Soft', '2ww-3119', 'ISA', 'Inf_Still_Creek', 'J76', 'K6',
                  'K7', 'K8', 'MIS1-LT2', 'MIS3-3117', 'MP16', 'Pin', 'SCI',
