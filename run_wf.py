@@ -55,15 +55,15 @@ def __main__():
         # Map our inputs for invocation
         inputs = {
             '0': {
-                'id': datasets['json']['id'],
+                'id': datasets['fasta']['id'],
                 'src': 'hda',
             },
             '1': {
-                'id': datasets['gff3']['id'],
+                'id': datasets['json']['id'],
                 'src': 'hda',
             },
             '2': {
-                'id': datasets['fasta']['id'],
+                'id': datasets['gff3']['id'],
                 'src': 'hda',
             }
         }
