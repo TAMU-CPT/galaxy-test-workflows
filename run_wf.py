@@ -71,6 +71,8 @@ def __main__():
 
         # Invoke Workflow
         wf_test_cases, watchable_invocation = run_workflow(gi, wf, inputs, hist)
+        # Give galaxy time to process
+        time.sleep(10)
         # Invoke Workflow test cases
         ts = xunit_suite('[%s] Invoking workflow' % name, wf_test_cases)
         test_suites.append(ts)
