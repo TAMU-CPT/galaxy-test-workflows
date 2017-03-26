@@ -52,6 +52,7 @@ def __main__():
         ts = xunit_suite('[%s] Fetching Data' % name, fetch_test_cases)
         test_suites.append(ts)
 
+        # TODO: fix mapping to always work.
         # Map our inputs for invocation
         inputs = {
             '0': {
