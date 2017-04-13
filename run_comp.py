@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import os
+import glob
 import time
 import logging
 import datetime
@@ -15,7 +16,7 @@ logging.getLogger("bioblend").setLevel(logging.WARNING)
 NOW = datetime.datetime.now()
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 backoff = Backoff(min_ms=100, max_ms=1000 * 60 * 5, factor=2, jitter=False)
-BUILD_ID = os.environ.get('BUILD_NUMBER', 'Manual')
+BUILD_ID = os.environ.get('BUILD_NUMBER', 'Manual-%s' % NOW.strftime('%H:%M'))
 
 def __main__():
     parser = argparse.ArgumentParser(description="""Script to run all workflows mentioned in workflows_to_test.
@@ -33,49 +34,76 @@ def __main__():
     args = parser.parse_args()
 
     gi = galaxy.GalaxyInstance(args.url, args.key)
-    wf = gi.workflows.get_workflows(workflow_id='7bfac6e726679b2c')[0]
-    # inputMap = gi.workflows.show_workflow('7bfac6e726679b2c')['inputs']
-    # import json
-    # print(json.dumps(, indent=2))
-    # print(wf)
+    wf = gi.workflows.get_workflows(workflow_id='95c345e5129ac7f2')[0]
+
+    org_names = ('Soft', '2ww-3119', 'ISA', 'Inf_Still_Creek', 'J76', 'K6',
+                 'K7', 'K8', 'MIS1-LT2', 'MIS3-3117', 'MP16', 'Pin', 'SCI',
+                 'SCS', 'SL-Ken', 'ScaAbd', 'ScaApp', 'Sw1_3003', 'Sw2-Ken',
+                 'UDP', '5ww_LT2', 'Sw2-Np2', 'CCS')
+
+    org_names = ('SCI',)
+
+    wf_inputs = gi.workflows.show_workflow(wf['id'])['inputs']
+    # import pprint; pprint.pprint(wf_inputs)
     # import sys; sys.exit()
-
-    org_names = ('CCS',)
-
     test_suites = []
     wf_invocations = []
     for name in org_names:
-        hist = gi.histories.create_history(name='BuildID=%s WF=Structural Org=%s Source=Jenkins' % (BUILD_ID, name))
-        gi.histories.create_history_tag(hist['id'], 'Automated')
-        gi.histories.create_history_tag(hist['id'], 'Annotation')
-        gi.histories.create_history_tag(hist['id'], 'BICH464')
-        # Load the datasets into history
-        datasets, fetch_test_cases = retrieve_and_rename(gi, hist, name)
-        ts = xunit_suite('[%s] Fetching Data' % name, fetch_test_cases)
-        test_suites.append(ts)
+        try:
+            hist = gi.histories.create_history(name='BuildID=%s WF=Comparative Org=%s Source=Jenkins' % (BUILD_ID, name))
+            gi.histories.create_history_tag(hist['id'], 'Automated')
+            gi.histories.create_history_tag(hist['id'], 'Annotation')
+            gi.histories.create_history_tag(hist['id'], 'BICH464')
+            # Load the datasets into history
+            files = glob.glob('tmp/%s*' % name)
+            for f in sorted(files):
+                # Skip blastxml
+                if '.NR.blastxml' in f: continue
+                gi.tools.upload_file(f, hist['id'])
 
-        # TODO: fix mapping to always work.
-        # Map our inputs for invocation
-        inputs = {
-            '0': {
-                'id': datasets['fasta']['id'],
-                'src': 'hda',
-            },
-            '1': {
-                'id': datasets['json']['id'],
-                'src': 'hda',
+            datasets = gi.histories.show_history(hist['id'], contents=True)
+            datasetMap = {
+                dataset['name'].replace(name + '.', ''): dataset['id']
+                for dataset in datasets
             }
-        }
 
-        # Invoke Workflow
-        wf_test_cases, watchable_invocation = run_workflow(gi, wf, inputs, hist)
-        # Give galaxy time to process
-        time.sleep(10)
-        # Invoke Workflow test cases
-        ts = xunit_suite('[%s] Invoking workflow' % name, wf_test_cases)
-        test_suites.append(ts)
-        # Store the invocation info for watching later.
-        wf_invocations.append(watchable_invocation)
+            import pprint; pprint.pprint(datasetMap)
+
+            # TODO: fix mapping to always work.
+            # Map our inputs for invocation
+            inputs = {
+                '0': {
+                    'id': datasetMap['fa'],
+                    'src': 'hda',
+                },
+                '1': {
+                    'id': datasetMap['gff3'],
+                    'src': 'hda',
+                },
+                '2': {
+                    'id': datasetMap['NT.blastxml'],
+                    'src': 'hda',
+                },
+                '3': {
+                    'id': datasetMap['NR.tsv'],
+                    'src': 'hda',
+                },
+                '4': {
+                    'id': datasetMap['PG.tsv'],
+                    'src': 'hda',
+                },
+            }
+
+            # Invoke Workflow
+            wf_test_cases, watchable_invocation = run_workflow(gi, wf, inputs, hist)
+            # Invoke Workflow test cases
+            ts = xunit_suite('[%s] Invoking workflow' % name, wf_test_cases)
+            test_suites.append(ts)
+
+            # Store the invocation info for watching later.
+            wf_invocations.append(watchable_invocation)
+        except:
+            pass
 
     invoke_test_cases = []
     for (wf_id, invoke_id) in wf_invocations:
@@ -101,35 +129,6 @@ def run_workflow(gi, wf, inputs, hist):
     watchable_invocation = (wf['id'], invocation['id'])
 
     return test_cases, watchable_invocation
-
-def retrieve_and_rename(gi, hist, ORG_NAME):
-    logging.info("Retrieving and Renaming %s", ORG_NAME)
-    # Now we'll run this tool
-    with xunit('galaxy', 'launch_tool') as tc3:
-        logging.info("Running tool")
-        inputs = {
-            'org_source|source_select': 'direct',
-            'org_source|org_raw': ORG_NAME,
-        }
-        tool_run = gi.tools.run_tool(hist['id'], 'edu.tamu.cpt2.webapollo.export', inputs)
-    # Now to correct the names
-
-    datasets = {}
-    logging.info("Run complete, renaming outputs")
-    for dataset in tool_run['outputs']:
-        if dataset['data_type'] == 'galaxy.datatypes.text.Json':
-            name = '%s.json' % ORG_NAME
-        elif dataset['data_type'] == 'galaxy.datatypes.sequence.Fasta':
-            name = '%s.fasta' % ORG_NAME
-        elif dataset['data_type'] == 'galaxy.datatypes.interval.Gff3':
-            name = '%s.gff3' % ORG_NAME
-        else:
-            name = 'Unknown'
-        logging.debug("Renaming %s (%s, %s) to %s", dataset['id'], dataset['data_type'], dataset['file_ext'], name)
-        # Keep a copy by extension
-        datasets[dataset['file_ext']] = dataset
-
-    return datasets, [tc3]
 
 
 def watch_job_invocation(gi, job_id):

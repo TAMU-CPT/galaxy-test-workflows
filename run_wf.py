@@ -35,10 +35,12 @@ def __main__():
     gi = galaxy.GalaxyInstance(args.url, args.key)
     wf = gi.workflows.get_workflows(workflow_id='6ef78cb4f3918886')[0]
 
-    org_names = ('Soft', '2ww-3119', 'ISA', 'Inf_Still_Creek', 'J76', 'K6',
-                 'K7', 'K8', 'MIS1-LT2', 'MIS3-3117', 'MP16', 'Pin', 'SCI',
-                 'SCS', 'SL-Ken', 'ScaAbd', 'ScaApp', 'Sw1_3003', 'Sw2-Ken',
-                 'UDP', '5ww_LT2')
+    # org_names = ('Soft', '2ww-3119', 'ISA', 'Inf_Still_Creek', 'J76', 'K6',
+                 # 'K7', 'K8', 'MIS1-LT2', 'MIS3-3117', 'MP16', 'Pin', 'SCI',
+                 # 'SCS', 'SL-Ken', 'ScaAbd', 'ScaApp', 'Sw1_3003', 'Sw2-Ken',
+                 # 'UDP', '5ww_LT2')
+
+    org_names = ('Sw2-Np2', 'CCS')
 
     test_suites = []
     wf_invocations = []
