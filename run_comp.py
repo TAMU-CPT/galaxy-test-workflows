@@ -16,7 +16,7 @@ logging.getLogger("bioblend").setLevel(logging.WARNING)
 NOW = datetime.datetime.now()
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 backoff = Backoff(min_ms=100, max_ms=1000 * 60 * 5, factor=2, jitter=False)
-BUILD_ID = os.environ.get('BUILD_NUMBER', 'Manual-%s' % NOW.strftime('%H:%M'))
+BUILD_ID = os.environ.get('BUILD_NUMBER', 'Manual-%s' % NOW.strftime('%Y.%m.%dT%H:%M'))
 
 def __main__():
     parser = argparse.ArgumentParser(description="""Script to run all workflows mentioned in workflows_to_test.
@@ -41,16 +41,13 @@ def __main__():
                  'SCS', 'SL-Ken', 'ScaAbd', 'ScaApp', 'Sw1_3003', 'Sw2-Ken',
                  'UDP', '5ww_LT2', 'Sw2-Np2', 'CCS')
 
-    org_names = ('SCI',)
-
-    wf_inputs = gi.workflows.show_workflow(wf['id'])['inputs']
-    # import pprint; pprint.pprint(wf_inputs)
-    # import sys; sys.exit()
+    wf_data = gi.workflows.show_workflow(wf['id'])
+    wf_inputs = wf_data['inputs']
     test_suites = []
     wf_invocations = []
     for name in org_names:
         try:
-            hist = gi.histories.create_history(name='BuildID=%s WF=Comparative Org=%s Source=Jenkins' % (BUILD_ID, name))
+            hist = gi.histories.create_history(name='BuildID=%s WF=%s Org=%s Source=Jenkins' % (BUILD_ID, wf_data['name'].replace(' ', '_'), name))
             gi.histories.create_history_tag(hist['id'], 'Automated')
             gi.histories.create_history_tag(hist['id'], 'Annotation')
             gi.histories.create_history_tag(hist['id'], 'BICH464')
