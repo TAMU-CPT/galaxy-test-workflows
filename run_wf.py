@@ -15,7 +15,7 @@ logging.getLogger("bioblend").setLevel(logging.WARNING)
 NOW = datetime.datetime.now()
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 backoff = Backoff(min_ms=100, max_ms=1000 * 60 * 5, factor=2, jitter=False)
-BUILD_ID = os.environ.get('BUILD_NUMBER', 'Manual')
+BUILD_ID = os.environ.get('BUILD_NUMBER', 'Manual-%s' % NOW.strftime('%Y.%m.%dT%H:%M'))
 
 def __main__():
     parser = argparse.ArgumentParser(description="""Script to run all workflows mentioned in workflows_to_test.
@@ -32,20 +32,27 @@ def __main__():
                         help="""Location to store xunit report in""")
     args = parser.parse_args()
 
+    WORKFLOW_ID = 'b5c00abe58f400a6'
     gi = galaxy.GalaxyInstance(args.url, args.key)
-    wf = gi.workflows.get_workflows(workflow_id='6ef78cb4f3918886')[0]
+    wf = gi.workflows.get_workflows(workflow_id=WORKFLOW_ID)[0]
+    inputMap = gi.workflows.show_workflow(WORKFLOW_ID)['inputs']
+    # import json
+    # print(json.dumps(inputMap, indent=2))
+    # import sys; sys.exit()
 
     # org_names = ('Soft', '2ww-3119', 'ISA', 'Inf_Still_Creek', 'J76', 'K6',
                  # 'K7', 'K8', 'MIS1-LT2', 'MIS3-3117', 'MP16', 'Pin', 'SCI',
                  # 'SCS', 'SL-Ken', 'ScaAbd', 'ScaApp', 'Sw1_3003', 'Sw2-Ken',
-                 # 'UDP', '5ww_LT2')
+                 # 'UDP', '5ww_LT2', 'CCS')
 
-    org_names = ('Sw2-Np2', 'CCS')
+    org_names = ('Sw2-Ken',)
 
+    wf_data = gi.workflows.show_workflow(wf['id'])
+    wf_inputs = wf_data['inputs']
     test_suites = []
     wf_invocations = []
     for name in org_names:
-        hist = gi.histories.create_history(name='BuildID=%s WF=Functional Org=%s Source=Jenkins' % (BUILD_ID, name))
+        hist = gi.histories.create_history(name='BuildID=%s WF=%s Org=%s Source=Jenkins' % (BUILD_ID, wf_data['name'].replace(' ', '_'), name))
         gi.histories.create_history_tag(hist['id'], 'Automated')
         gi.histories.create_history_tag(hist['id'], 'Annotation')
         gi.histories.create_history_tag(hist['id'], 'BICH464')
@@ -101,6 +108,7 @@ def run_workflow(gi, wf, inputs, hist):
             inputs=inputs,
             history_id=hist['id'],
         )
+        logging.info("Inovcation: %s", invocation['id'])
     test_cases.append(tc_invoke)
     watchable_invocation = (wf['id'], invocation['id'])
 

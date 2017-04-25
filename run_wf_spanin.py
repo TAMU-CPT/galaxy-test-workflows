@@ -46,7 +46,7 @@ def __main__():
     org_names = ('Soft', '2ww-3119', 'ISA', 'Inf_Still_Creek', 'J76', 'K6',
                  'K7', 'K8', 'MIS1-LT2', 'MIS3-3117', 'MP16', 'Pin', 'SCI',
                  'SCS', 'SL-Ken', 'ScaAbd', 'ScaApp', 'Sw1_3003', 'Sw2-Ken',
-                 'UDP', '5ww_LT2', 'Sw2-Np2', 'CCS')
+                 'UDP', '5ww_LT2', 'CCS')
 
     wf_data = gi.workflows.show_workflow(wf['id'])
     wf_inputs = wf_data['inputs']
